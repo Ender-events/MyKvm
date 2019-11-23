@@ -1,4 +1,5 @@
 #include <err.h>
+#include <stdint.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
 #include <stdio.h>
@@ -7,10 +8,24 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-unsigned char out_o[] = {
-  0xb0, 0x61, 0x66, 0xba, 0xf8, 0x03, 0xee, 0xeb, 0xf7
+#define COM1 0x3f8
+
+unsigned char out_o[] = {	/* begin: */
+	0xb0, 0x61,				/* mov $0x61, %al */
+	0x66, 0xba, 0xf8, 0x03,	/* mov $0x3f8, %dx */
+	0xee,					/* out %al, (%dx) */
+	0xeb, 0xf7				/* jmp begin */
 };
-unsigned int out_o_len = 9;
+
+void handle_io(struct kvm_run *run_state)
+{
+	if (run_state->io.port == COM1 && run_state->io.direction == KVM_EXIT_IO_OUT)
+	{
+		uint64_t offset = run_state->io.data_offset;
+		uint32_t size = run_state->io.size;
+		write(STDOUT_FILENO, (char*)run_state + offset, size);
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -18,6 +33,8 @@ int main(int argc, char **argv)
 	if (fd_kvm < 0) {
 		err(1, "unable to open /dev/kvm");
 	}
+
+	int kvm_run_size = ioctl(fd_kvm, KVM_GET_VCPU_MMAP_SIZE, 0);
 
 	int fd_vm = ioctl(fd_kvm, KVM_CREATE_VM, 0);
 	if (fd_vm < 0) {
@@ -33,7 +50,7 @@ int main(int argc, char **argv)
 	void *mem_addr = mmap(NULL, 1 << 12, PROT_READ | PROT_WRITE,
 			      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-	memcpy(mem_addr, out_o, out_o_len);
+	memcpy(mem_addr, out_o, sizeof(out_o));
 
 	struct kvm_userspace_memory_region region = {
 		.slot = 0,
@@ -78,12 +95,23 @@ int main(int argc, char **argv)
 	regs.rip = 0x100000;
 
 	ioctl(fd_vcpu, KVM_SET_REGS, &regs);
+	struct kvm_run *run_state =
+		mmap(0, kvm_run_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd_vcpu, 0);
 
 	for (;;) {
 		int rc = ioctl(fd_vcpu, KVM_RUN, 0);
 
 		if (rc < 0)
 			warn("KVM_RUN");
+		switch (run_state->exit_reason)
+		{
+		case KVM_EXIT_IO:
+			handle_io(run_state);
+			break;
+		default:
+			printf("unknown exit reason\n");
+			break;
+		}
 
 		printf("vm exit, sleeping 1s\n");
 		sleep(1);

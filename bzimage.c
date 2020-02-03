@@ -43,7 +43,8 @@ void boot_param_init(struct boot_params* boot_params, struct bzimage* bzImage)
 {
     memset(boot_params, 0, sizeof(*boot_params));
     struct setup_header* HdrS = ptr_offset(bzImage->data, 0x1f1);
-    size_t setup_size = HdrS->jump & 0x00FF;
+    unsigned char *bzimg = bzImage->data;
+    size_t setup_size = bzimg[0x201] + 0x202;
     memcpy(&boot_params->hdr, HdrS, setup_size);
     bzimage_boot_protocol(&boot_params->hdr);
     boot_params->ext_cmd_line_ptr = CMDLINE_PTR;

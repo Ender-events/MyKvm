@@ -1,12 +1,15 @@
 #include <err.h>
-#include <stdint.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
+#include "bzimage.h"
+#include "utils.h"
 
 #define COM1 0x3f8
 
@@ -47,16 +50,17 @@ int main(int argc, char **argv)
 
 	ioctl(fd_vm, KVM_CREATE_IRQCHIP, 0);
 
-	void *mem_addr = mmap(NULL, 1 << 12, PROT_READ | PROT_WRITE,
+	void *mem_addr = mmap(NULL, 1 << 30, PROT_READ | PROT_WRITE,
 			      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-	memcpy(mem_addr, out_o, sizeof(out_o));
+	//memcpy(mem_addr, out_o, sizeof(out_o));
+    load_bzimage(argv[1], mem_addr);
 
 	struct kvm_userspace_memory_region region = {
 		.slot = 0,
 		.flags = 0,
-		.guest_phys_addr = 0x100000,
-		.memory_size = 1 << 12,
+		.guest_phys_addr = 0x0,
+		.memory_size = 1 << 30,
 		.userspace_addr = (__u64)mem_addr,
 	};
 
@@ -92,11 +96,12 @@ int main(int argc, char **argv)
 
 	regs.rflags = 2;
 
-	regs.rip = 0x100000;
+	regs.rip = PM_ADDR;
 
 	ioctl(fd_vcpu, KVM_SET_REGS, &regs);
 	struct kvm_run *run_state =
 		mmap(0, kvm_run_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd_vcpu, 0);
+
 
 	for (;;) {
 		int rc = ioctl(fd_vcpu, KVM_RUN, 0);

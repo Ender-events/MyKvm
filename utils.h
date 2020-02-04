@@ -5,4 +5,6 @@
 #define CMDLINE_PTR 0x20000
 #define PM_ADDR 0x100000
 
+void* ptr_offset(char* ptr, int offset);
+
 #endif /* _UTILS_H_ */

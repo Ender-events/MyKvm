@@ -9,12 +9,6 @@
 
 #include "utils.h"
 
-
-void* ptr_offset(char* ptr, int offset)
-{
-    return ptr + offset;
-}
-
 int bzimage_init(char* filename, struct bzimage* bzImage)
 {
     int fd_bzImage= open(filename, O_RDONLY);

@@ -8,6 +8,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <capstone/capstone.h>
+
 #include "bzimage.h"
 #include "utils.h"
 
@@ -28,6 +30,24 @@ void handle_io(struct kvm_run *run_state)
         uint32_t size = run_state->io.size;
         write(STDOUT_FILENO, (char*)run_state + offset, size);
     }
+}
+
+void disassembly(csh handle, void* guest_mem, uint64_t rip)
+{
+    cs_insn *insn;
+    size_t count;
+    count = cs_disasm(handle, ptr_offset(guest_mem, rip), 16, rip, 0, &insn);
+    if (count > 0) {
+        size_t j;
+        for (j = 0; j < count; j++) {
+            printf("0x%"PRIx64":\t%s\t\t%s\n",
+                    insn[j].address, insn[j].mnemonic,
+                    insn[j].op_str);
+        }
+
+        cs_free(insn, count);
+    } else
+        printf("ERROR: Failed to disassemble given code!\n");
 }
 
 int main(int argc, char **argv)
@@ -97,6 +117,7 @@ int main(int argc, char **argv)
     regs.rflags = 2;
 
     regs.rip = PM_ADDR;
+    regs.rsi = BOOT_PARAMS_PTR;
 
     ioctl(fd_vcpu, KVM_SET_REGS, &regs);
 
@@ -108,6 +129,11 @@ int main(int argc, char **argv)
     struct kvm_run *run_state =
         mmap(0, kvm_run_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd_vcpu, 0);
 
+
+    csh handle;
+    if (cs_open(CS_ARCH_X86, CS_MODE_32, &handle) != CS_ERR_OK)
+		return -1;
+    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 
     for (;;) {
         int rc = ioctl(fd_vcpu, KVM_RUN, 0);
@@ -122,6 +148,7 @@ int main(int argc, char **argv)
             default:
                 printf("exit reason: %d\n", run_state->exit_reason);
                 ioctl(fd_vcpu, KVM_GET_REGS, &regs);
+                disassembly(handle, mem_addr, regs.rip);
                 printf("rip: 0x%llx\n", regs.rip);
                 break;
         }

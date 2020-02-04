@@ -23,12 +23,12 @@ int bzimage_init(char* filename, struct bzimage* bzImage)
 
 void bzimage_boot_protocol(struct setup_header* HdrS)
 {
-    HdrS->vid_mode = 0xffff; // VGA
+    HdrS->vid_mode = 0xFFFF; // VGA
     HdrS->type_of_loader = 0xFF; // undefined, maybe Qemu ?
-    HdrS->loadflags = 0x01;
     HdrS->ramdisk_image = 0x0;
     HdrS->ramdisk_size = 0x0;
-    // HdrS->heap_end_ptr = 0x9800 - 0x200;
+    HdrS->loadflags |= CAN_USE_HEAP | 0x01 | KEEP_SEGMENTS;
+    HdrS->heap_end_ptr = 0xFE00;
     HdrS->ext_loader_ver = 0x0;
     HdrS->cmd_line_ptr = CMDLINE_PTR;
 }
@@ -41,18 +41,18 @@ void boot_param_init(struct boot_params* boot_params, struct bzimage* bzImage)
     size_t setup_size = bzimg[0x201] + 0x202;
     memcpy(&boot_params->hdr, HdrS, setup_size);
     bzimage_boot_protocol(&boot_params->hdr);
-    boot_params->ext_cmd_line_ptr = CMDLINE_PTR;
+    //boot_params->ext_cmd_line_ptr = CMDLINE_PTR;
 }
 
 void load_bzimage(char* filename, void* hw)
 {
     struct bzimage bzImage;
-    memset(ptr_offset(hw, CMDLINE_PTR), 0, 255);
     bzimage_init(filename, &bzImage);
     size_t kernel_size = bzImage.size;
     struct boot_params* boot_params = ptr_offset(hw, BOOT_PARAMS_PTR);
     boot_param_init(boot_params, &bzImage);
     struct setup_header* HdrS = &boot_params->hdr;
+    memset(ptr_offset(hw, CMDLINE_PTR), 0, HdrS->cmdline_size);
     size_t setup_sects = HdrS->setup_sects;
     if (setup_sects == 0)
         setup_sects = 4;

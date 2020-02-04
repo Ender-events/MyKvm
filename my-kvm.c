@@ -113,19 +113,25 @@ int main(int argc, char **argv)
     ioctl(fd_vcpu, KVM_GET_REGS, &regs);
     regs.rflags = 2;
     regs.rip = PM_ADDR;
+    regs.rsi = BOOT_PARAMS_PTR;
     ioctl(fd_vcpu, KVM_SET_REGS, &regs);
 
-    struct kvm_cpuid2 kvm_cpuid;
-    ioctl(fd_vcpu, KVM_GET_SUPPORTED_CPUID, &kvm_cpuid);
-    struct kvm_cpuid_entry2 entry = {
-        .function = KVM_CPUID_SIGNATURE,
-        .eax = KVM_CPUID_FEATURES,
-        .ebx = 0x4b4d564b, // KVMK
-        .ecx = 0x564b4d56, // VMKV
-        .edx = 0x4d        // M
-    };
-    kvm_cpuid.entries[0] = entry;
-    ioctl(fd_vcpu, KVM_SET_CPUID2, &kvm_cpuid);
+    struct kvm_cpuid2 *kvm_cpuid = calloc(1, sizeof(*kvm_cpuid)
+            + MAX_KVM_CPUID_ENTRIES * sizeof(*kvm_cpuid->entries));
+    kvm_cpuid->nent = MAX_KVM_CPUID_ENTRIES;
+    if (ioctl(fd_kvm, KVM_GET_SUPPORTED_CPUID, kvm_cpuid) < 0)
+        perror("ioctl KVM_GET_SUPPORTED_CPUID");
+    for (unsigned int i = 0; i < kvm_cpuid->nent; ++i) {
+        struct kvm_cpuid_entry2 *entry = &kvm_cpuid->entries[i];
+        if (entry->function == 0) {
+            entry->eax = KVM_CPUID_FEATURES;
+            entry->ebx = 0x4b4d564b; // KVMK
+            entry->ecx = 0x564b4d56; // VMKV
+            entry->edx = 0x4d;       // M
+        }
+    }
+    if (ioctl(fd_vcpu, KVM_SET_CPUID2, kvm_cpuid) < 0)
+        perror("ioctl KVM_SET_CPUID2");
 
     struct kvm_guest_debug kvm_guest_debug = {
         .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,

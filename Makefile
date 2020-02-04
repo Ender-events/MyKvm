@@ -1,6 +1,6 @@
 CC = gcc
 CPPFLAGS = -D_GNU_SOURCE
-CFLAGS = -Wall -Wextra -pedantic -std=c99 -g3 -Og
+CFLAGS = -Wall -Wextra -pedantic -std=c99 -g3 -O0
 LDFLAGS = -lcapstone
 
 BIN = my-kvm

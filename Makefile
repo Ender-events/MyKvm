@@ -1,11 +1,12 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CPPFLAGS = -D_GNU_SOURCE
+CFLAGS = -Wall -Wextra -pedantic -std=c99 -g3 -Og
 LDFLAGS = -lcapstone
 
-BIN = example-kvm
+BIN = my-kvm
 OBJS = \
     bzimage.o \
-    example-kvm.o \
+    my-kvm.o \
     utils.o \
     $(NULL)
 

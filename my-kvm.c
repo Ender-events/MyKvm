@@ -1,6 +1,7 @@
 #include <err.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
+#include <linux/kvm_para.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -104,22 +105,27 @@ int main(int argc, char **argv)
 
     sregs.cs.db = 1;
     sregs.ss.db = 1;
-
 #undef set_segment_selector
-
     sregs.cr0 |= 1;
-
     ioctl(fd_vcpu, KVM_SET_SREGS, &sregs);
 
     struct kvm_regs regs;
     ioctl(fd_vcpu, KVM_GET_REGS, &regs);
-
     regs.rflags = 2;
-
     regs.rip = PM_ADDR;
-    regs.rsi = BOOT_PARAMS_PTR;
-
     ioctl(fd_vcpu, KVM_SET_REGS, &regs);
+
+    struct kvm_cpuid2 kvm_cpuid;
+    ioctl(fd_vcpu, KVM_GET_SUPPORTED_CPUID, &kvm_cpuid);
+    struct kvm_cpuid_entry2 entry = {
+        .function = KVM_CPUID_SIGNATURE,
+        .eax = KVM_CPUID_FEATURES,
+        .ebx = 0x4b4d564b, // KVMK
+        .ecx = 0x564b4d56, // VMKV
+        .edx = 0x4d        // M
+    };
+    kvm_cpuid.entries[0] = entry;
+    ioctl(fd_vcpu, KVM_SET_CPUID2, &kvm_cpuid);
 
     struct kvm_guest_debug kvm_guest_debug = {
         .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,
@@ -132,7 +138,7 @@ int main(int argc, char **argv)
 
     csh handle;
     if (cs_open(CS_ARCH_X86, CS_MODE_32, &handle) != CS_ERR_OK)
-		return -1;
+        return -1;
     cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 
     for (;;) {

@@ -59,5 +59,5 @@ void load_bzimage(char* filename, void* hw)
     size_t setup_size = (setup_sects + 1) << 9;
     kernel_size -= setup_size;
     void* kernel = ptr_offset(bzImage.data, setup_size);
-    memcpy(hw, kernel, kernel_size);
+    memcpy(ptr_offset(hw, PM_ADDR), kernel, kernel_size);
 }

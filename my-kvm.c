@@ -40,6 +40,7 @@ void disassembly(csh handle, void* guest_mem, uint64_t rip)
     count = cs_disasm(handle, ptr_offset(guest_mem, rip), 16, rip, 0, &insn);
     if (count > 0) {
         size_t j;
+        if (count > 2) count = 2;
         for (j = 0; j < count; j++) {
             printf("0x%"PRIx64":\t%s\t\t%s\n",
                     insn[j].address, insn[j].mnemonic,
@@ -49,6 +50,16 @@ void disassembly(csh handle, void* guest_mem, uint64_t rip)
         cs_free(insn, count);
     } else
         printf("ERROR: Failed to disassemble given code!\n");
+}
+
+void dump_register(struct kvm_regs* regs)
+{
+    printf("rax: %08llx\trbx: %08llx\trcx: %08llx\trdx: %08llx\n"
+           "rsi: %08llx\trdi: %08llx\trsp: %08llx\trbp: %08llx\n"
+           "rip: %08llx\trflags: %08llx\n",
+           regs->rax, regs->rbx, regs->rcx, regs->rdx,
+           regs->rsi, regs->rdi, regs->rsp, regs->rbp,
+           regs->rip, regs->rflags);
 }
 
 int main(int argc, char **argv)
@@ -157,6 +168,11 @@ int main(int argc, char **argv)
             case KVM_EXIT_IO:
                 handle_io(run_state);
                 break;
+            case KVM_EXIT_SHUTDOWN:
+                ioctl(fd_vcpu, KVM_GET_REGS, &regs);
+                disassembly(handle, mem_addr, regs.rip);
+                dump_register(&regs);
+                return 1;
             default:
                 printf("exit reason: %d\n", run_state->exit_reason);
                 ioctl(fd_vcpu, KVM_GET_REGS, &regs);

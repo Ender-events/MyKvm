@@ -113,6 +113,7 @@ int main(int argc, char **argv)
     set_segment_selector(sregs.cs, 0, ~0, 1);
     set_segment_selector(sregs.ds, 0, ~0, 1);
     set_segment_selector(sregs.ss, 0, ~0, 1);
+    set_segment_selector(sregs.es, 0, ~0, 1);
 
     sregs.cs.db = 1;
     sregs.ss.db = 1;

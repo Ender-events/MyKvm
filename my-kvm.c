@@ -52,7 +52,7 @@ void disassembly(csh handle, void* guest_mem, uint64_t rip)
         printf("ERROR: Failed to disassemble given code!\n");
 }
 
-void dump_register(struct kvm_regs* regs)
+void dump_register(struct kvm_regs* regs, struct kvm_sregs* sregs)
 {
     printf("rax: %08llx\trbx: %08llx\trcx: %08llx\trdx: %08llx\n"
            "rsi: %08llx\trdi: %08llx\trsp: %08llx\trbp: %08llx\n"
@@ -60,6 +60,13 @@ void dump_register(struct kvm_regs* regs)
            regs->rax, regs->rbx, regs->rcx, regs->rdx,
            regs->rsi, regs->rdi, regs->rsp, regs->rbp,
            regs->rip, regs->rflags);
+    if (sregs != NULL)
+    {
+        printf("cs: %08llx\tds: %08llx\tes: %08llx\tfs: %08llx\n"
+               "gs: %08llx\tss: %08llx\ttr: %08llx\tldt: %08llx\n",
+               sregs->cs.base, sregs->ds.base, sregs->es.base, sregs->fs.base,
+               sregs->gs.base, sregs->ss.base, sregs->tr.base, sregs->ldt.base);
+    }
 }
 
 int main(int argc, char **argv)
@@ -114,6 +121,8 @@ int main(int argc, char **argv)
     set_segment_selector(sregs.ds, 0, ~0, 1);
     set_segment_selector(sregs.ss, 0, ~0, 1);
     set_segment_selector(sregs.es, 0, ~0, 1);
+    set_segment_selector(sregs.fs, 0, ~0, 1);
+    set_segment_selector(sregs.gs, 0, ~0, 1);
 
     sregs.cs.db = 1;
     sregs.ss.db = 1;
@@ -155,7 +164,7 @@ int main(int argc, char **argv)
 
 
     csh handle;
-    if (cs_open(CS_ARCH_X86, CS_MODE_32, &handle) != CS_ERR_OK)
+    if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK)
         return -1;
     cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 
@@ -167,23 +176,25 @@ int main(int argc, char **argv)
         switch (run_state->exit_reason)
         {
             case KVM_EXIT_IO:
+                printf("KVM_EXIT_IO\n");
                 handle_io(run_state);
                 break;
             case KVM_EXIT_SHUTDOWN:
                 ioctl(fd_vcpu, KVM_GET_REGS, &regs);
+                ioctl(fd_vcpu, KVM_GET_SREGS, &sregs);
                 disassembly(handle, mem_addr, regs.rip);
-                dump_register(&regs);
+                dump_register(&regs, NULL);
                 return 1;
             default:
                 printf("exit reason: %d\n", run_state->exit_reason);
                 ioctl(fd_vcpu, KVM_GET_REGS, &regs);
                 disassembly(handle, mem_addr, regs.rip);
-                printf("rip: 0x%llx\n", regs.rip);
+                ioctl(fd_vcpu, KVM_GET_SREGS, &sregs);
+                dump_register(&regs, &sregs);
                 break;
         }
 
         printf("vm exit, sleeping 1s\n");
-        sleep(1);
     }
 
     return 0;

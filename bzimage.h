@@ -3,12 +3,11 @@
 
 #include <stddef.h>
 
-struct bzimage
-{
-    size_t size;
-    void* data;
+struct bzimage {
+	size_t size;
+	void *data;
 };
 
-void load_bzimage(const char* filename, void* hw);
+void load_bzimage(const char *filename, void *hw);
 
 #endif /* _BZIMAGE_H_ */

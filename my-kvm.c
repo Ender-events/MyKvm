@@ -13,6 +13,7 @@
 #include "utils.h"
 
 #define COM1 0x3f8
+#define LSR 5
 
 unsigned char out_o[] = {
 	/* begin: */
@@ -24,11 +25,16 @@ unsigned char out_o[] = {
 
 static void handle_io(struct kvm_run *run_state)
 {
+	uint64_t offset = run_state->io.data_offset;
 	if (run_state->io.port == COM1 &&
-	    run_state->io.direction == KVM_EXIT_IO_OUT) {
-		uint64_t offset = run_state->io.data_offset;
+			run_state->io.direction == KVM_EXIT_IO_OUT) {
 		uint32_t size = run_state->io.size;
-		write(STDOUT_FILENO, (char *)run_state + offset, size);
+		write(STDOUT_FILENO, (char *)run_state + offset, size * run_state->io.count);
+	}
+	else if (run_state->io.port == COM1 + LSR &&
+			run_state->io.direction == KVM_EXIT_IO_IN) {
+		char* value = (char *)run_state + offset;
+		//*value = 0x20;
 	}
 }
 
@@ -148,7 +154,9 @@ void run_kvm(struct my_kvm *my_kvm)
 		mmap(0, kvm_run_size, PROT_READ | PROT_WRITE, MAP_PRIVATE,
 		     my_kvm->fd_vcpu, 0);
 
+#ifdef DEBUG
 	csh handle = init_debug(my_kvm->fd_vcpu);
+#endif
 
 	for (;;) {
 		int rc = ioctl(my_kvm->fd_vcpu, KVM_RUN, 0);
@@ -157,20 +165,24 @@ void run_kvm(struct my_kvm *my_kvm)
 			warn("KVM_RUN");
 		switch (run_state->exit_reason) {
 		case KVM_EXIT_IO:
+#ifdef DEBUG
 			puts("KVM_EXIT_IO");
+#endif
 			handle_io(run_state);
 			break;
 		case KVM_EXIT_SHUTDOWN:
 			puts("KVM_EXIT_SHUTDOWN");
+#ifdef DEBUG
 			debug_dump(handle, my_kvm);
+#endif
 			return;
 		default:
+#ifdef DEBUG
 			printf("exit reason: %d\n", run_state->exit_reason);
 			debug_dump(handle, my_kvm);
+#endif
 			break;
 		}
-
-		printf("vm exit, sleeping 1s\n");
 	}
 }
 

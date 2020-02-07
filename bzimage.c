@@ -50,6 +50,7 @@ void load_bzimage(const char *filename, void *hw)
 	boot_param_init(boot_params, &bzImage);
 	struct setup_header *HdrS = &boot_params->hdr;
 	memset(ptr_offset(hw, CMDLINE_PTR), 0, HdrS->cmdline_size);
+	strcpy(ptr_offset(hw, CMDLINE_PTR), "nokaslr earlyprintk=serial,ttyS0,115200");
 	size_t setup_sects = HdrS->setup_sects;
 	if (setup_sects == 0)
 		setup_sects = 4;

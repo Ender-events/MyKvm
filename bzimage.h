@@ -1,5 +1,6 @@
 #ifndef _BZIMAGE_H_
 #define _BZIMAGE_H_
+
 #include <stddef.h>
 
 struct bzimage
@@ -8,6 +9,6 @@ struct bzimage
     void* data;
 };
 
-void load_bzimage(char* filename, void* hw);
+void load_bzimage(const char* filename, void* hw);
 
 #endif /* _BZIMAGE_H_ */

@@ -9,7 +9,7 @@
 
 #include "utils.h"
 
-int bzimage_init(char* filename, struct bzimage* bzImage)
+static int bzimage_init(const char* filename, struct bzimage* bzImage)
 {
     int fd_bzImage= open(filename, O_RDONLY);
     struct stat st;
@@ -21,7 +21,7 @@ int bzimage_init(char* filename, struct bzimage* bzImage)
     return 0;
 }
 
-void bzimage_boot_protocol(struct setup_header* HdrS)
+static void bzimage_boot_protocol(struct setup_header* HdrS)
 {
     HdrS->vid_mode = 0xFFFF; // VGA
     HdrS->type_of_loader = 0xFF; // undefined, maybe Qemu ?
@@ -33,18 +33,15 @@ void bzimage_boot_protocol(struct setup_header* HdrS)
     HdrS->cmd_line_ptr = CMDLINE_PTR;
 }
 
-void boot_param_init(struct boot_params* boot_params, struct bzimage* bzImage)
+static void boot_param_init(struct boot_params* boot_params,
+                            struct bzimage* bzImage)
 {
     memset(boot_params, 0, sizeof(*boot_params));
-    struct setup_header* HdrS = ptr_offset(bzImage->data, 0x1f1);
-    unsigned char *bzimg = bzImage->data;
-    size_t setup_size = bzimg[0x201] + 0x202;
-    memcpy(&boot_params->hdr, HdrS, setup_size);
+    memcpy(boot_params, bzImage->data, sizeof(struct boot_params));
     bzimage_boot_protocol(&boot_params->hdr);
-    //boot_params->ext_cmd_line_ptr = CMDLINE_PTR;
 }
 
-void load_bzimage(char* filename, void* hw)
+void load_bzimage(const char* filename, void* hw)
 {
     struct bzimage bzImage;
     bzimage_init(filename, &bzImage);

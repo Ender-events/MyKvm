@@ -34,7 +34,7 @@ static void handle_io(struct kvm_run *run_state)
 	else if (run_state->io.port == COM1 + LSR &&
 			run_state->io.direction == KVM_EXIT_IO_IN) {
 		char* value = (char *)run_state + offset;
-		//*value = 0x20;
+		*value = 0x20;
 	}
 }
 
@@ -156,7 +156,7 @@ void run_kvm(struct my_kvm *my_kvm)
 {
 	int kvm_run_size = ioctl(my_kvm->fd_kvm, KVM_GET_VCPU_MMAP_SIZE, 0);
 	struct kvm_run *run_state =
-		mmap(0, kvm_run_size, PROT_READ | PROT_WRITE, MAP_PRIVATE,
+		mmap(0, kvm_run_size, PROT_READ | PROT_WRITE, MAP_SHARED,
 		     my_kvm->fd_vcpu, 0);
 
 #ifdef DEBUG

@@ -1,6 +1,7 @@
 #include "bzimage.h"
 
 #include <asm/bootparam.h>
+#include <asm/e820.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -33,12 +34,27 @@ static void bzimage_boot_protocol(struct setup_header *HdrS)
 	HdrS->cmd_line_ptr = CMDLINE_PTR;
 }
 
+static void e820_init(struct boot_e820_entry *entry)
+{
+	entry[0] = (struct boot_e820_entry){
+		.addr = 0x0,
+		.size = 0x1000,
+		.type = E820_UNUSABLE
+	};
+	entry[1] = (struct boot_e820_entry){
+		.addr = 0x1000,
+		.size = (1 << 30) - 0x1000,
+		.type = E820_RAM
+	};
+}
+
 static void boot_param_init(struct boot_params *boot_params,
 			    struct bzimage *bzImage)
 {
 	memset(boot_params, 0, sizeof(*boot_params));
 	memcpy(boot_params, bzImage->data, sizeof(struct boot_params));
 	bzimage_boot_protocol(&boot_params->hdr);
+	e820_init(boot_params->e820_table);
 }
 
 void load_bzimage(const char *filename, void *hw)

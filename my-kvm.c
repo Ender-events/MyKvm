@@ -51,6 +51,11 @@ static int init_vm(int fd_kvm)
 
 	ioctl(fd_vm, KVM_CREATE_IRQCHIP, 0);
 
+	struct kvm_pit_config pit = {
+		.flags = 0,
+	};
+	ioctl(fd_vm, KVM_CREATE_PIT2, &pit);
+
 	return fd_vm;
 }
 
@@ -97,7 +102,7 @@ static void init_cpuid(int fd_kvm, int fd_vcpu)
 
 	for (unsigned int i = 0; i < kvm_cpuid->nent; ++i) {
 		struct kvm_cpuid_entry2 *entry = &kvm_cpuid->entries[i];
-		if (entry->function == 0) {
+		if (entry->function == KVM_CPUID_SIGNATURE) {
 			entry->eax = KVM_CPUID_FEATURES;
 			entry->ebx = 0x4b4d564b; // KVMK
 			entry->ecx = 0x564b4d56; // VMKV

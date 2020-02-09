@@ -20,13 +20,13 @@ static void handle_io(struct kvm_run *run_state)
 {
 	uint64_t offset = run_state->io.data_offset;
 	if (run_state->io.port == COM1 &&
-			run_state->io.direction == KVM_EXIT_IO_OUT) {
+	    run_state->io.direction == KVM_EXIT_IO_OUT) {
 		uint32_t size = run_state->io.size;
-		write(STDOUT_FILENO, (char *)run_state + offset, size * run_state->io.count);
-	}
-	else if (run_state->io.port == COM1 + LSR &&
-			run_state->io.direction == KVM_EXIT_IO_IN) {
-		char* value = (char *)run_state + offset;
+		write(STDOUT_FILENO, (char *)run_state + offset,
+		      size * run_state->io.count);
+	} else if (run_state->io.port == COM1 + LSR &&
+		   run_state->io.direction == KVM_EXIT_IO_IN) {
+		char *value = (char *)run_state + offset;
 		*value = 0x20;
 	}
 }

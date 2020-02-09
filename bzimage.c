@@ -40,16 +40,12 @@ static void bzimage_boot_protocol(struct setup_header *HdrS)
 
 static void e820_init(struct boot_e820_entry *entry)
 {
-	entry[0] = (struct boot_e820_entry){
-		.addr = 0x0,
-		.size = 0x1000,
-		.type = E820_UNUSABLE
-	};
-	entry[1] = (struct boot_e820_entry){
-		.addr = 0x1000,
-		.size = (1 << 30) - 0x1000,
-		.type = E820_RAM
-	};
+	entry[0] = (struct boot_e820_entry){ .addr = 0x0,
+					     .size = 0x1000,
+					     .type = E820_UNUSABLE };
+	entry[1] = (struct boot_e820_entry){ .addr = 0x1000,
+					     .size = (1 << 30) - 0x1000,
+					     .type = E820_RAM };
 }
 
 static void boot_param_init(struct boot_params *boot_params,
@@ -62,8 +58,7 @@ static void boot_param_init(struct boot_params *boot_params,
 }
 
 static void load_initramfs(const char *initramfs_path,
-						   struct setup_header *HdrS,
-						   void *hw)
+			   struct setup_header *HdrS, void *hw)
 {
 	if (HdrS->initrd_addr_max < INITRAMFS_ADDR)
 		errx(1, "Can't load initramfs to the wanted address");
@@ -73,8 +68,8 @@ static void load_initramfs(const char *initramfs_path,
 	struct stat st;
 	fstat(fd_initramfs, &st);
 	uint64_t initramfs_size = st.st_size;
-	void *initramfs_data = mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE,
-						  fd_initramfs, 0);
+	void *initramfs_data = mmap(0, st.st_size, PROT_READ | PROT_WRITE,
+				    MAP_PRIVATE, fd_initramfs, 0);
 	close(fd_initramfs);
 	memcpy(ptr_offset(hw, INITRAMFS_ADDR), initramfs_data, initramfs_size);
 	HdrS->ramdisk_image = INITRAMFS_ADDR;
@@ -84,8 +79,7 @@ static void load_initramfs(const char *initramfs_path,
 
 static void load_kernel_command_line(char **cmd_line, char *p)
 {
-	if (!cmd_line[0])
-	{
+	if (!cmd_line[0]) {
 		strcpy(p, "console=ttyS0");
 		return;
 	};
@@ -94,8 +88,7 @@ static void load_kernel_command_line(char **cmd_line, char *p)
 		err(1, "unable to calloc cmd_line string");
 	size_t cur_len = strlen(to_copy) + 1;
 
-	for (size_t i = 1; cmd_line[i]; ++i)
-	{
+	for (size_t i = 1; cmd_line[i]; ++i) {
 		size_t len = strlen(cmd_line[i]);
 		to_copy = realloc(to_copy, cur_len + 1 + len);
 		strcat(to_copy, " ");

@@ -15,16 +15,14 @@ struct opts parse_options(int argc, char **argv)
 {
 	struct opts opts = { NULL, NULL, NULL, 0 };
 	int opt;
-	int longindex;
+	int longindex = 0;
 	static const struct option long_options[] = {
-		{ "initrd", required_argument, 0, 0 },
-		{ 0, 0, 0, 0 }
+		{ "initrd", required_argument, 0, 0 }, { 0, 0, 0, 0 }
 	};
 
-	while ((opt = getopt_long(argc, argv, "hm:", long_options, &longindex)) != -1)
-	{
-		switch (opt)
-		{
+	while ((opt = getopt_long(argc, argv, "hm:", long_options,
+				  &longindex)) != -1) {
+		switch (opt) {
 		case 0:
 			if (longindex == 0)
 				opts.initrd_path = optarg;
@@ -38,10 +36,9 @@ struct opts parse_options(int argc, char **argv)
 		case 'm':
 			opts.ram_size = strtoul(optarg, NULL, 10);
 			break;
-		case '?':
-			break;
 		default:
-			errx(1, "unknown option: %c", opt);
+			// Error message already displayed by getopt
+			exit(1);
 		}
 	}
 

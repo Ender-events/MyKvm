@@ -24,8 +24,15 @@ my-kvm -m $ram --initrd initramfs bzImage console=ttyS0
 
 ## Tests
 
-You can test this project with the given bzImage and initramfs.img ant the
-following command line
+You can test this project with the given bzImage and initramfs.img with:
+
 ```
-./my-kvm --initrd initramfs.img bzImage "root=/dev/ram0 console=ttyS0"
+./my-kvm --initrd test/initramfs.img test/bzImage "root=/dev/ram0 console=ttyS0"
 ```
+
+## AUTHORS
+
+* Benoît Gloria <benoit.gloria@epita.fr>
+* Laurent Zhu <laurent.zhu@epita.fr>
+
+EPITA - GISTRE 2020

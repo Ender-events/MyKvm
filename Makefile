@@ -1,6 +1,7 @@
 CC = gcc
 CPPFLAGS = -D_GNU_SOURCE
 CFLAGS = -Wall -Wextra -pedantic -std=c99
+VPATH = src
 
 DEBUG ?= 0
 

@@ -21,3 +21,11 @@ my-kvm bzImage root=/dev/vda
 my-kvm --initrd initramfs bzImage root=/dev/vda
 my-kvm -m $ram --initrd initramfs bzImage console=ttyS0
 ```
+
+## Tests
+
+You can test this project with the given bzImage and initramfs.img ant the
+following command line
+```
+./my-kvm --initrd initramfs.img bzImage "root=/dev/ram0 console=ttyS0"
+```

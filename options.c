@@ -7,7 +7,8 @@
 
 static void print_usage(const char *program_name)
 {
-	printf("Usage: %s\n", program_name);
+	printf("Usage: %s [OPTIONS] bzImage [KERNEL_COMMAND_LINE]\n",
+	       program_name);
 }
 
 struct opts parse_options(int argc, char **argv)

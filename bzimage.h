@@ -8,6 +8,6 @@ struct bzimage {
 	void *data;
 };
 
-void load_bzimage(const char *filename, void *hw);
+void load_bzimage(const char *filename, const char *initramfs_path, void *hw);
 
 #endif /* _BZIMAGE_H_ */

@@ -112,7 +112,7 @@ static void init_cpuid(int fd_kvm, int fd_vcpu)
 	ioctl(fd_vcpu, KVM_SET_CPUID2, kvm_cpuid);
 }
 
-struct my_kvm *init_kvm(const char *bzimage_path)
+struct my_kvm *init_kvm(const char *bzimage_path, const char *initramfs_path)
 {
 	struct my_kvm *my_kvm = calloc(1, sizeof(*my_kvm));
 	if (!my_kvm)
@@ -129,7 +129,7 @@ struct my_kvm *init_kvm(const char *bzimage_path)
 			      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
 	//memcpy(mem_addr, out_o, sizeof(out_o));
-	load_bzimage(bzimage_path, mem_addr);
+	load_bzimage(bzimage_path, initramfs_path, mem_addr);
 
 	struct kvm_userspace_memory_region region = {
 		.slot = 0,
@@ -194,7 +194,7 @@ void run_kvm(struct my_kvm *my_kvm)
 int main(int argc, char **argv)
 {
 	(void)argc;
-	struct my_kvm *my_kvm = init_kvm(argv[1]);
+	struct my_kvm *my_kvm = init_kvm(argv[1], argv[2]);
 	run_kvm(my_kvm);
 	return 0;
 }

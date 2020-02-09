@@ -8,7 +8,7 @@ struct my_kvm {
 	void *mem_addr;
 };
 
-struct my_kvm *init_kvm(const char *bzimage_path);
+struct my_kvm *init_kvm(const char *bzimage_path, const char *initramfs_path);
 void run_kvm(struct my_kvm *my_kvm);
 
 #endif /* _MY_KVM_H */

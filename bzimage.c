@@ -77,6 +77,7 @@ static void load_initramfs(const char *initramfs_path,
 	memcpy(ptr_offset(hw, INITRAMFS_ADDR), initramfs_data, initramfs_size);
 	HdrS->ramdisk_image = INITRAMFS_ADDR;
 	HdrS->ramdisk_size = initramfs_size;
+	munmap(initramfs_data, initramfs_size);
 }
 
 void load_bzimage(const char *filename, const char *initramfs_path, void *hw)

@@ -103,6 +103,7 @@ static void init_cpuid(int fd_kvm, int fd_vcpu)
 		}
 	}
 	ioctl(fd_vcpu, KVM_SET_CPUID2, kvm_cpuid);
+	free(kvm_cpuid);
 }
 
 static struct my_kvm *init_kvm(struct opts opts)
@@ -183,10 +184,20 @@ static void run_kvm(struct my_kvm *my_kvm)
 	}
 }
 
+static void free_my_kvm(struct my_kvm *my_kvm)
+{
+	close(my_kvm->fd_kvm);
+	close(my_kvm->fd_vm);
+	close(my_kvm->fd_vcpu);
+	munmap(my_kvm->mem_addr, 1 << 30);
+	free(my_kvm);
+}
+
 int main(int argc, char **argv)
 {
 	struct opts opts = parse_options(argc, argv);
 	struct my_kvm *my_kvm = init_kvm(opts);
 	run_kvm(my_kvm);
+	free_my_kvm(my_kvm);
 	return 0;
 }

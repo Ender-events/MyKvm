@@ -17,6 +17,8 @@
 static int bzimage_init(const char *filename, struct bzimage *bzImage)
 {
 	int fd_bzImage = open(filename, O_RDONLY);
+        if (fd_bzImage == -1)
+            err(1, "unable to open bzImage");
 	struct stat st;
 	fstat(fd_bzImage, &st);
 	bzImage->size = st.st_size;
@@ -64,7 +66,7 @@ static void load_initramfs(const char *initramfs_path,
 		errx(1, "Can't load initramfs to the wanted address");
 	int fd_initramfs = open(initramfs_path, O_RDONLY);
 	if (fd_initramfs == -1)
-		errx(1, "Can't open initramfs");
+		err(1, "unable to open initramfs");
 	struct stat st;
 	fstat(fd_initramfs, &st);
 	uint64_t initramfs_size = st.st_size;
@@ -110,7 +112,6 @@ void load_bzimage(struct opts opts, void *hw)
 	boot_param_init(boot_params, &bzImage);
 	struct setup_header *HdrS = &boot_params->hdr;
 	memset(ptr_offset(hw, CMDLINE_PTR), 0, HdrS->cmdline_size);
-	//strcpy(ptr_offset(hw, CMDLINE_PTR), "root=/dev/ram0 console=ttyS0");
 	load_kernel_command_line(opts.cmd_line, ptr_offset(hw, CMDLINE_PTR));
 	size_t setup_sects = HdrS->setup_sects;
 	if (setup_sects == 0)
@@ -119,5 +120,6 @@ void load_bzimage(struct opts opts, void *hw)
 	kernel_size -= setup_size;
 	void *kernel = ptr_offset(bzImage.data, setup_size);
 	memcpy(ptr_offset(hw, PM_ADDR), kernel, kernel_size);
-	load_initramfs(opts.initrd_path, HdrS, hw);
+	if (opts.initrd_path)
+		load_initramfs(opts.initrd_path, HdrS, hw);
 }

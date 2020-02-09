@@ -122,7 +122,7 @@ static struct my_kvm *init_kvm(struct opts opts)
 	void *mem_addr = mmap(NULL, 1 << 30, PROT_READ | PROT_WRITE,
 			      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-	load_bzimage(opts.bzimage_path, opts.initrd_path, mem_addr);
+	load_bzimage(opts, mem_addr);
 
 	struct kvm_userspace_memory_region region = {
 		.slot = 0,

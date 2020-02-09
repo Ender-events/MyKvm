@@ -6,10 +6,12 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "options.h"
 #include "utils.h"
 
 static int bzimage_init(const char *filename, struct bzimage *bzImage)
@@ -80,17 +82,43 @@ static void load_initramfs(const char *initramfs_path,
 	munmap(initramfs_data, initramfs_size);
 }
 
-void load_bzimage(const char *filename, const char *initramfs_path, void *hw)
+static void load_kernel_command_line(char **cmd_line, char *p)
+{
+	if (!cmd_line[0])
+	{
+		strcpy(p, "console=ttyS0");
+		return;
+	};
+	char *to_copy = strdup(cmd_line[0]);
+	if (!to_copy)
+		err(1, "unable to calloc cmd_line string");
+	size_t cur_len = strlen(to_copy) + 1;
+
+	for (size_t i = 1; cmd_line[i]; ++i)
+	{
+		size_t len = strlen(cmd_line[i]);
+		to_copy = realloc(to_copy, cur_len + 1 + len);
+		strcat(to_copy, " ");
+		strcat(to_copy, cmd_line[i]);
+		cur_len += len + 1;
+		to_copy[cur_len - 1] = '\0';
+	}
+
+	strcpy(p, to_copy);
+	free(to_copy);
+}
+
+void load_bzimage(struct opts opts, void *hw)
 {
 	struct bzimage bzImage;
-	bzimage_init(filename, &bzImage);
+	bzimage_init(opts.bzimage_path, &bzImage);
 	size_t kernel_size = bzImage.size;
 	struct boot_params *boot_params = ptr_offset(hw, BOOT_PARAMS_PTR);
 	boot_param_init(boot_params, &bzImage);
 	struct setup_header *HdrS = &boot_params->hdr;
 	memset(ptr_offset(hw, CMDLINE_PTR), 0, HdrS->cmdline_size);
-	//strcpy(ptr_offset(hw, CMDLINE_PTR), "earlyprintk=serial,ttyS0,115200");
-	strcpy(ptr_offset(hw, CMDLINE_PTR), "root=/dev/ram0 console=ttyS0");
+	//strcpy(ptr_offset(hw, CMDLINE_PTR), "root=/dev/ram0 console=ttyS0");
+	load_kernel_command_line(opts.cmd_line, ptr_offset(hw, CMDLINE_PTR));
 	size_t setup_sects = HdrS->setup_sects;
 	if (setup_sects == 0)
 		setup_sects = 4;
@@ -98,5 +126,5 @@ void load_bzimage(const char *filename, const char *initramfs_path, void *hw)
 	kernel_size -= setup_size;
 	void *kernel = ptr_offset(bzImage.data, setup_size);
 	memcpy(ptr_offset(hw, PM_ADDR), kernel, kernel_size);
-	load_initramfs(initramfs_path, HdrS, hw);
+	load_initramfs(opts.initrd_path, HdrS, hw);
 }

@@ -8,17 +8,20 @@ BIN = my-kvm
 OBJS = \
     bzimage.o \
     my-kvm.o \
+    options.o \
     utils.o \
     $(NULL)
+
+OBJS_DEBUG = debug.o
 
 ifeq ($(DEBUG), 1)
     CFLAGS += -g3 -O0
     CPPFLAGS += -DDEBUG
     LDFLAGS += -lcapstone
-    OBJS += debug.o
+    OBJS += $(OBJS_DEBUG)
 endif
 
 $(BIN): $(OBJS)
 
 clean:
-	$(RM) $(OBJS) $(BIN)
+	$(RM) $(OBJS) $(OBJS_DEBUG) $(BIN)

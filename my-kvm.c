@@ -10,18 +10,11 @@
 
 #include "bzimage.h"
 #include "debug.h"
+#include "options.h"
 #include "utils.h"
 
 #define COM1 0x3f8
 #define LSR 5
-
-unsigned char out_o[] = {
-	/* begin: */
-	0xb0, 0x61, /* mov $0x61, %al */
-	0x66, 0xba, 0xf8, 0x03, /* mov $0x3f8, %dx */
-	0xee, /* out %al, (%dx) */
-	0xeb, 0xf7 /* jmp begin */
-};
 
 static void handle_io(struct kvm_run *run_state)
 {
@@ -112,7 +105,7 @@ static void init_cpuid(int fd_kvm, int fd_vcpu)
 	ioctl(fd_vcpu, KVM_SET_CPUID2, kvm_cpuid);
 }
 
-struct my_kvm *init_kvm(const char *bzimage_path, const char *initramfs_path)
+static struct my_kvm *init_kvm(struct opts opts)
 {
 	struct my_kvm *my_kvm = calloc(1, sizeof(*my_kvm));
 	if (!my_kvm)
@@ -128,8 +121,7 @@ struct my_kvm *init_kvm(const char *bzimage_path, const char *initramfs_path)
 	void *mem_addr = mmap(NULL, 1 << 30, PROT_READ | PROT_WRITE,
 			      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-	//memcpy(mem_addr, out_o, sizeof(out_o));
-	load_bzimage(bzimage_path, initramfs_path, mem_addr);
+	load_bzimage(opts.bzimage_path, opts.initrd_path, mem_addr);
 
 	struct kvm_userspace_memory_region region = {
 		.slot = 0,
@@ -152,7 +144,7 @@ struct my_kvm *init_kvm(const char *bzimage_path, const char *initramfs_path)
 	return my_kvm;
 }
 
-void run_kvm(struct my_kvm *my_kvm)
+static void run_kvm(struct my_kvm *my_kvm)
 {
 	int kvm_run_size = ioctl(my_kvm->fd_kvm, KVM_GET_VCPU_MMAP_SIZE, 0);
 	struct kvm_run *run_state =
@@ -193,8 +185,8 @@ void run_kvm(struct my_kvm *my_kvm)
 
 int main(int argc, char **argv)
 {
-	(void)argc;
-	struct my_kvm *my_kvm = init_kvm(argv[1], argv[2]);
+	struct opts opts = parse_options(argc, argv);
+	struct my_kvm *my_kvm = init_kvm(opts);
 	run_kvm(my_kvm);
 	return 0;
 }
